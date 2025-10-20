@@ -1,7 +1,5 @@
 (() => {
-  // Se till att hjälpmoduleerna (inkl. DPT_TextTransforms) är laddade innan vi använder dem
-  // Denna rad garanterar ordningen oavsett zip-packning/laddningssekvens.
-  localRequirejs("loadModules");
+  "use strict";
 
   // Basnormalisering för titel/albumtitel (utan album-specifika suffix)
   function normalizeTitleOrAlbum(s) {
@@ -11,7 +9,7 @@
     x = normalizeInlinePt(x);
     x = normalizeVol(x);
 
-    // Anropa den centrala ellips-normaliseringen från textTransforms (ingen fallback)
+    // Anropa central ellips-normalisering från textTransforms
     const { normalizeEllipsisSpacing } = window.DPT_TextTransforms;
     x = normalizeEllipsisSpacing(x);
 

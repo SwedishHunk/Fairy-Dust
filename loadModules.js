@@ -19,6 +19,7 @@
   localRequirejs("utils/normalizeVol");
   localRequirejs("utils/normalizeVs");
   localRequirejs("utils/normalizeWith");
+  localRequirejs("utils/normalizeTitleOrAlbum");
   localRequirejs("utils/smartCapitalize");
   localRequirejs("utils/stripArtistSuffix");
 
