@@ -1,9 +1,11 @@
-const { sleep, toArray, waitForUitools, getSelectedArray } = window.DPT_MM;
-
 (function () {
   "use strict";
 
+  // Ladda modulerna FÖRST – detta definierar window.DPT_MM
   localRequirejs("loadModules");
+
+  // Nu kan vi destrukturera tryggt
+  const { sleep, toArray, waitForUitools, getSelectedArray } = window.DPT_MM;
 
   // ====== Parser för Discogs-klipp ======
   function parseDiscogs(raw) {
