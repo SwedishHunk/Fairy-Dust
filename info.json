@@ -6,5 +6,5 @@
   "main": "init.js",
   "version": "0.36.2",
   "description": "Fix:\r\n– Ladda utils/normalizeTitleOrAlbum via loadModules.js (efter textTransforms) och koppla in central ellips-normalisering.\r\n– Säkrar korrekt laddningsordning och gör att ... normaliseras i titlar.\r\n\r\nFOCUS:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Refaktorera\r\n\r\nBETA WATCH:\r\n– Skapa en sträng med album och albumartist (om album (mer än 50% av alla artister är samma). Annars album, år och titel på första spåret.\r\n– Skapa snabbknapp för att lägga punkt efter varje bokstav i ordet/orden.",
-  "lastUpdated": "2025-10-20 16:15:14"
+  "lastUpdated": "2025-10-20 18:43:25"
 }
