@@ -13,9 +13,13 @@
   }
   // Titlar: luta på befintlig smartCapitalize om den finns, annars enkel fallback
   function toTitleCaseWords(s) {
-    if (typeof window.smartCapitalize === "function") return window.smartCapitalize(s);
+    if (typeof window.smartCapitalize === "function")
+      return window.smartCapitalize(s);
     s = String(s ?? "");
-    return s.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    return s.replace(
+      /\w\S*/g,
+      (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+    );
   }
   // "A, B" -> "A & B" (endast enkel komma som separator, lämna komma inuti parenteser)
   function commaToAmp(s) {
@@ -27,7 +31,7 @@
       const c = s[i];
       if (c === "(") depth++;
       if (c === ")") depth = Math.max(0, depth - 1);
-      if (depth === 0 && c === "," && s[i+1] === " ") {
+      if (depth === 0 && c === "," && s[i + 1] === " ") {
         out += " & ";
         i++; // hoppa över mellanslag
       } else {
@@ -47,6 +51,19 @@
     return s.replace(/\.\.\./g, " · · ·");
   }
 
+  // --- NYTT: normalisera ellips
+  // 1) "…" → "..."
+  // 2) ". . ." (med mellanrum) → "..."
+  // 3) ta bort mellanslag precis före "..." → "bla ... bla" → "bla... bla"
+  function normalizeEllipsisSpacing(s) {
+    if (s == null) return s;
+    s = String(s);
+    s = s.replace(/\u2026/g, "..."); // unicode ellipsis
+    s = s.replace(/\s*\.\s*\.\s*\./g, "..."); // spaced dots
+    s = s.replace(/\s+(?=\.\.\.)/g, ""); // space before ...
+    return s;
+  }
+
   // Exponera en samlad yta – peka också ut existerande helpers om de finns
   const api = {
     toUpper,
@@ -54,13 +71,24 @@
     toTitleCaseWords,
     commaToAmp,
     toggleDots,
+    normalizeEllipsisSpacing,
 
     // Re-exportera vanliga helpers (om de redan finns globalt)
     clean: typeof window.clean === "function" ? window.clean : undefined,
-    smartCapitalize: typeof window.smartCapitalize === "function" ? window.smartCapitalize : undefined,
-    wrapGenericRemix: typeof window.wrapGenericRemix === "function" ? window.wrapGenericRemix : undefined,
-    dashToEmpty: typeof window.dashToEmpty === "function" ? window.dashToEmpty : undefined,
-    escapeRegExp: typeof window.escapeRegExp === "function" ? window.escapeRegExp : undefined,
+    smartCapitalize:
+      typeof window.smartCapitalize === "function"
+        ? window.smartCapitalize
+        : undefined,
+    wrapGenericRemix:
+      typeof window.wrapGenericRemix === "function"
+        ? window.wrapGenericRemix
+        : undefined,
+    dashToEmpty:
+      typeof window.dashToEmpty === "function" ? window.dashToEmpty : undefined,
+    escapeRegExp:
+      typeof window.escapeRegExp === "function"
+        ? window.escapeRegExp
+        : undefined,
   };
 
   window.DPT_TextTransforms = api;

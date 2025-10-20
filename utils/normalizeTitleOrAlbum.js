@@ -6,6 +6,14 @@
     x = normalizeRemix(x);
     x = normalizeInlinePt(x);
     x = normalizeVol(x);
+
+    // NYTT: ellips-normalisering
+    const ellipsis =
+      (window.DPT_TextTransforms &&
+        window.DPT_TextTransforms.normalizeEllipsisSpacing) ||
+      ((t) => t);
+    x = ellipsis(x);
+
     x = smartCapitalize(x);
     // Possessiv: 90'S → 90's (gäller även ord + 'S)
     x = x.replace(/(['’])S\b/g, "$1s");

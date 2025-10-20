@@ -6,3 +6,4 @@
 /dist/
 /build/
 info.json.bak_*
+*.parse_dump.txt
