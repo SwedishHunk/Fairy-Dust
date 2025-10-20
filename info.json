@@ -4,7 +4,7 @@
   "type": "script",
   "author": "Max",
   "main": "init.js",
-  "version": "0.35.19",
-  "description": "NYTT:\r\n– utils/mm.js\r\n– flyttat sleep, toArray, waitForUitools, getSelectedArray från init.js\r\n\r\nFOCUS:\r\n– Refaktorera\r\n\r\nBETA WATCH:\r\n– Skapa en sträng med album och albumartist (om album (mer än 50% av alla artister är samma). Annars album, år och titel på första spåret.\r\n– Skapa snabbknapp för att lägga punkt efter varje bokstav i ordet/orden.",
-  "lastUpdated": "2025-10-19 11:04:43"
+  "version": "0.36.0",
+  "description": "NYTT:\r\n– Test 1\r\n\r\nFix:\r\n– Test 1\r\n\r\nFOCUS:\r\n– Refaktorera\r\n\r\nBETA WATCH:\r\n– Skapa en sträng med album och albumartist (om album (mer än 50% av alla artister är samma). Annars album, år och titel på första spåret.\r\n– Skapa snabbknapp för att lägga punkt efter varje bokstav i ordet/orden.",
+  "lastUpdated": "2025-10-20 12:57:44"
 }

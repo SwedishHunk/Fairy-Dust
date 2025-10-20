@@ -1,1 +1,8 @@
-.zip
+# Backup / build / archive
+*.zip
+*.mmip
+*.log
+/archive/
+/dist/
+/build/
+info.json.bak_*

@@ -1,0 +1,11 @@
+{
+  "name": "fairy-dust",
+  "type": "module",
+  "description": "Discogs Parser utility for MediaMonkey add-ons",
+  "scripts": {
+    "test": "node utils/tests/_runner.js"
+  },
+  "author": "Max Dettwiler",
+  "license": "MIT",
+  "version": "0.36.0"
+}
