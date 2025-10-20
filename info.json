@@ -4,7 +4,7 @@
   "type": "script",
   "author": "Max",
   "main": "init.js",
-  "version": "0.36.1",
-  "description": "NYTT:\r\n– Implementerat ny ellips-normalisering i titel- och albumhanteringen.\r\n– Funktionen ersätter . . . och … med ..., samt tar bort mellanslag direkt före ....\r\n– Detta förbättrar visuell konsekvens i taggar och undviker oönskade mellanrum i titlar.\r\n\r\nFix:\r\n– Säkerställ laddningsordning i init.js\r\n– ladda loadModules före destructuring av window.DPT_MM för att undvika startfel (“Cannot destructure property 'sleep' of 'window.DPT_MM'”).\r\n\r\nFOCUS:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Refaktorera\r\n\r\nBETA WATCH:\r\n– Skapa en sträng med album och albumartist (om album (mer än 50% av alla artister är samma). Annars album, år och titel på första spåret.\r\n– Skapa snabbknapp för att lägga punkt efter varje bokstav i ordet/orden.",
-  "lastUpdated": "2025-10-20 16:01:40"
+  "version": "0.36.2",
+  "description": "Fix:\r\n– Säkerställd laddningsordning i normalizeTitleOrAlbum (kör localRequirejs(\"loadModules\") innan användning av DPT_TextTransforms) och kopplad in central ellips-normalisering utan fallback.\r\n\r\nFOCUS:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Refaktorera\r\n\r\nBETA WATCH:\r\n– Skapa en sträng med album och albumartist (om album (mer än 50% av alla artister är samma). Annars album, år och titel på första spåret.\r\n– Skapa snabbknapp för att lägga punkt efter varje bokstav i ordet/orden.",
+  "lastUpdated": "2025-10-20 16:10:19"
 }
