@@ -9,14 +9,10 @@
 
   // ====== Parser för Discogs-klipp ======
   function parseDiscogs(raw) {
-    // 1) normalisera
+    // 1) normalisera radslut och flytta ensam tid till föregående rad
     let text = (raw || "").replace(/\r\n/g, "\n");
-    // tider på egen rad -> klistra på föregående
-    text = text.replace(/\n\s*(\d{1,2}:\d{2})\s*$/gm, " $1");
 
-    // 2) plocka “huvudet”
-    // Första raden liknar: "Artist — Album"
-    // Dela på SISTA "space–dash–space" så bindestreck i artistnamn inte stör.
+    // 2) plocka “huvudet” (Artist — Album) från första raden
     const firstLine = clean(text.split("\n")[0] || "");
     let albumArtist = "",
       album = firstLine;
@@ -27,161 +23,93 @@
     } else {
       albumArtist = "";
     }
+    album = cleanAlbumTitle ? cleanAlbumTitle(album) : album; // om pipen finns, kör den
 
-    // Released / Year
-    const relMatch = text.match(/^\s*Released:\s*([^\n]+)$/im);
-    let year = "";
-    if (relMatch) {
-      const y = relMatch[1].match(/(\d{4})/);
-      if (y) year = y[1];
-    }
+    // 3) gå igenom resterande rader → bygg spårlista
+    const lines = text.split("\n").slice(1);
 
-    // Genre / Style → föredra Style om den ser rimlig ut, annars Genre
-    const styleLine = text.match(/^\s*Style:\s*([^\n]*)$/im); // * tillåter tom style
-    const genreLine = text.match(/^\s*Genre:\s*([^\n]+)$/im);
+    const RX_TRACK = /^\s*(\d+)\s+(.+?)(?:\s+(\d{1,2}:\d{2}))?\s*$/;
+    // Lägg överst i funktionen, nära dina andra regex:
+    const RX_FEAT = /^\s*(?:featuring|feat\.?)\s*[-–]\s*(.+)\s*$/i;
+    const RX_TIME_ONLY = /^\s*(\d{1,2}:\d{2})\s*$/;
 
-    const fromCsv = (s) =>
-      (s || "")
-        .split(",")
-        .map((x) => clean(x))
-        .filter(Boolean)
-        .join("; ");
+    // Småhjälpare för att rensa/använda flera feat-namn:
+    const cleanFeatName = (s) =>
+      String(s || "")
+        .replace(/\*+$/g, "") // ta bort trailing asterisk
+        .replace(/\s*\(\d+\)\s*$/g, "") // ta bort Discogs-index (4)
+        .replace(/\s+/g, " ")
+        .trim();
 
-    let genre = "";
-    if (styleLine) {
-      const s = clean(styleLine[1]);
-      // Ignorera tracklist-rubriker etc.
-      const looksLikeTrackHeader =
-        /^Act\s*\d+/i.test(s) || /^(Tracklist|Bonus)\b/i.test(s);
-      if (s && !looksLikeTrackHeader) {
-        genre = fromCsv(s);
-      }
-    }
-    if (!genre && genreLine) {
-      genre = fromCsv(genreLine[1]);
-    }
-
-    // Label + Catalog Numbers (cat#)
-    const labelLine = text.match(/^\s*Label:\s*([^\n]+)$/im);
-    let label = "";
-    let labelNumbers = []; // alla cat#
-    let labelNumber = ""; // vad som ska visas i GIW
-
-    if (labelLine) {
-      const seenLabels = new Map(); // case-insensitiv dedupe av labelnamn
-      const catnos = new Set(); // unika cat# i insamlingsordning
-
-      labelLine[1].split(",").forEach((raw) => {
-        let part = (raw || "").trim();
-        if (!part) return;
-
-        // Dela "Label — CatNo" på långt streck (–/—), aldrig på "-"
-        const mDash = part.match(/^(.*?)\s*[–—]\s*(.+)$/);
-        let left = part,
-          right = "";
-        if (mDash) {
-          left = mDash[1].trim();
-          right = mDash[2].trim();
-        }
-
-        // Rensa parentes-suffix i labeln (t.ex. "(2)", "(US)")
-        left = left.replace(/\s*\([^)]*\)\s*$/, "").trim();
-        if (left) {
-          const key = left.toLowerCase();
-          if (!seenLabels.has(key)) seenLabels.set(key, left);
-        }
-
-        // Cat#: kan vara flera i samma segment, separerade med "/" eller ";"
-        if (right) {
-          right.split(/[\/;]\s*/).forEach((c) => {
-            const rawCn = (c || "").trim();
-            if (!rawCn) return;
-            // Normalisera försiktigt, utan krav på att hjälpfunktion finns
-            const cn =
-              typeof normalizeCatNo === "function"
-                ? normalizeCatNo(rawCn)
-                : rawCn.replace(/\s+/g, " ").trim();
-            if (cn) catnos.add(cn);
-          });
-        }
-      });
-
-      label = Array.from(seenLabels.values()).join("; ");
-      labelNumbers = Array.from(catnos);
-
-      // Välj hur GIW-fältet "Katalognummer" ska fyllas:
-      // 1) Visa ALLA cat# (enkelt att radera ner till ett):
-      labelNumber = labelNumbers.join("; ");
-
-      // 2) **Om du hellre vill visa bara första**:
-      // labelNumber = labelNumbers[0] || "";
-    }
-
-    // Compilation? → albumartist = Various Artists
-    const formatLine = text.match(/^\s*Format:\s*([^\n]+)$/im);
-    if (formatLine && /Compilation/i.test(formatLine[1])) {
-      albumArtist = "Various Artists";
-    } else {
-      albumArtist = cleanArtistName(albumArtist);
-    }
-
-    album = cleanAlbumTitle(album);
-
-    // 3) klipp ut själva tracklist (börjar vid rad som börjar med “1  ”)
-    const startIdx = text.search(/^\s*1\s/m);
-    const trackBlock = startIdx >= 0 ? text.slice(startIdx) : "";
-    const lines = trackBlock
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
+    const splitFeatNames = (s) =>
+      String(s || "")
+        .split(/\s*(?:,|&| and )\s*/i)
+        .map(cleanFeatName)
+        .filter(Boolean);
 
     const tracks = [];
     for (let i = 0; i < lines.length; i++) {
-      const ln = clean(lines[i]);
+      let ln = lines[i].trim();
+      if (!ln) continue;
 
-      // 1) "nr  Artist — Title  [tid]"
-      let m = ln.match(
-        new RegExp(
-          "^\\s*(\\d+)\\s+(.+?)\\s*" +
-            (window.DPT_CONSTANTS?.DASH_CLASS || DASH_CLASS) +
-            "\\s+(.+?)(?:\\s+\\d{1,2}:\\d{2})?$"
-        )
-      );
+      // 1) "Featuring – X" mellan spår -> koppla till SENASTE spåret
+      let mFeat = ln.match(RX_FEAT);
+      if (mFeat) {
+        if (tracks.length) {
+          const t = tracks[tracks.length - 1];
+          const names = splitFeatNames(mFeat[1]);
 
-      if (m) {
-        let artist = cleanArtistName(m[2]);
-        // Normalisera endast överflödiga punkter
-        artist = artist.replace(/\bvs\.{2,}\b/gi, "vs.");
-        const title = cleanTrackTitle(m[3]);
-        const safeTitle = stripLeadingArtistPrefix(title, artist);
-        tracks.push({ artist, title: safeTitle });
+          if (!t._feats) t._feats = [];
+          for (const n of names) if (!t._feats.includes(n)) t._feats.push(n);
+
+          t.artist = t._feats.length
+            ? `${albumArtist} feat. ${t._feats.join(", ")}`
+            : albumArtist;
+        }
+        continue; // den här raden är bara en credit
+      }
+
+      // 2) En rad som BARA innehåller tid -> sätt length på SENASTE spåret
+      let mTimeOnly = ln.match(RX_TIME_ONLY);
+      if (mTimeOnly) {
+        if (tracks.length) tracks[tracks.length - 1].length = mTimeOnly[1];
+        continue; // inte en egen spårrad
+      }
+
+      // b) Vanlig spår-rad: "<nr>  <titel>  [ev tid]"
+      const mt = ln.match(RX_TRACK);
+      if (mt) {
+        const idx = parseInt(mt[1], 10);
+        const rawTitle = mt[2];
+        const len = mt[3] || "";
+
+        const title =
+          typeof cleanTrackTitle === "function"
+            ? cleanTrackTitle(rawTitle)
+            : clean(rawTitle);
+
+        tracks.push({
+          index: idx,
+          artist: albumArtist, // default, ev. uppdateras av efterföljande "Featuring – ..."
+          title,
+          length: len,
+        });
         continue;
       }
 
-      // 2) "nr  Title  [tid]"  (ingen artist på raden → använd albumArtist)
-      m = ln.match(/^\s*(\d+)\s+(.+?)(?:\s+\d{1,2}:\d{2})?$/);
-      if (m) {
-        const title = stripLeadingArtistPrefix(
-          cleanTrackTitle(m[2]),
-          albumArtist
-        );
-
-        let artistFromAlbum = cleanArtistName(albumArtist);
-        artistFromAlbum = artistFromAlbum.replace(/\bvs\.{2,}\b/gi, "vs.");
-
-        tracks.push({ artist: artistFromAlbum, title });
+      // c) Rader som kan ignoreras (metadata/”More images” etc.)
+      if (/^(label|format|country|released|genre|style)\s*:/i.test(ln))
         continue;
-      }
-    } // ←← STÄNGER for-loopen
+      if (/^more images$/i.test(ln)) continue;
+      if (/album cover$/i.test(ln)) continue;
+
+      // d) Om något annat dyker upp: lämna orört för framtida regler
+      // console.debug('okänd rad i Discogs-parse:', ln);
+    }
 
     return {
-      albumArtist: cleanArtistName(albumArtist),
-      album: album,
-      year: sanitizeYear(year),
-      genre: clean(genre),
-      label: clean(label),
-      labelNumber: clean(labelNumber), // valt cat#
-      labelNumbers: labelNumbers.map(clean), // ← NYTT: alla cat#
+      albumArtist,
+      album,
       tracks,
     };
   }

@@ -22,6 +22,7 @@
       g("normalizePartInTitle"),
       g("normalizeRemix"),
       g("normalizeVol"),
+      g("normalizeEllipsisSpacing"),
       g("smartCapitalize"),
       g("wrapGenericRemix"),
       // possessiv: 90'S → 90's
@@ -36,6 +37,7 @@
       g("normalizeRemix"),
       g("normalizeSideInAlbum"),
       g("normalizeVol"),
+      g("normalizeEllipsisSpacing"),
       g("smartCapitalize"),
       (x) => String(x || "").replace(/(['’])S\b/g, "$1s"),
     ],
