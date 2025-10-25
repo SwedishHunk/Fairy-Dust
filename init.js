@@ -8,12 +8,11 @@
   const { sleep, toArray, waitForUitools, getSelectedArray } = window.DPT_MM;
 
   // ====== Parser för Discogs-klipp ======
-  // ====== Parser för Discogs-klipp ======
   function parseDiscogs(raw) {
     // 1) Normalisera radslut (INGEN "klistra tid på föregående rad")
     let text = (raw || "").replace(/\r\n/g, "\n");
 
-    // 2) Plocka “huvudet” (Artist — Album) från första raden
+    // 2) Huvudrad: "Artist — Album"
     const firstLine = clean(text.split("\n")[0] || "");
     let albumArtist = "",
       album = firstLine;
@@ -25,7 +24,7 @@
       albumArtist = "";
     }
 
-    // ---------- METADATA (från 0.35.18, oförändrad i sak) ----------
+    // ---------- METADATA (från 0.35.18) ----------
 
     // Released / Year
     const relMatch = text.match(/^\s*Released:\s*([^\n]+)$/im);
@@ -36,7 +35,7 @@
     }
 
     // Genre / Style → föredra Style om den ser rimlig ut, annars Genre
-    const styleLine = text.match(/^\s*Style:\s*([^\n]*)$/im); // * tillåter tom style
+    const styleLine = text.match(/^\s*Style:\s*([^\n]*)$/im);
     const genreLine = text.match(/^\s*Genre:\s*([^\n]+)$/im);
 
     const fromCsv = (s) =>
@@ -63,17 +62,17 @@
     const labelLine = text.match(/^\s*Label:\s*([^\n]+)$/im);
     let label = "";
     let labelNumbers = []; // alla cat#
-    let labelNumber = ""; // vad som visas i GIW
+    let labelNumber = ""; // det som visas i GIW
 
     if (labelLine) {
-      const seenLabels = new Map(); // case-insensitiv dedupe av labelnamn
+      const seenLabels = new Map(); // case-insensitiv dedupe
       const catnos = new Set(); // unika cat# i insamlingsordning
 
       labelLine[1].split(",").forEach((rawPart) => {
         let part = (rawPart || "").trim();
         if (!part) return;
 
-        // Dela "Label — CatNo" på långt streck (–/—), aldrig på vanlig "-"
+        // Dela "Label — CatNo" på långt streck (– eller —), aldrig på '-'
         const mDash = part.match(/^(.*?)\s*[–—]\s*(.+)$/);
         let left = part,
           right = "";
@@ -106,9 +105,8 @@
       label = Array.from(seenLabels.values()).join("; ");
       labelNumbers = Array.from(catnos);
 
-      // Visa ALLA cat# i GIW-fältet (samma beteende som i 0.35.18)
+      // Visa ALLA cat# (samma som 0.35.18)
       labelNumber = labelNumbers.join("; ");
-      // (Om du hellre vill visa bara första: labelNumber = labelNumbers[0] || "";)
     }
 
     // Compilation? → albumartist = Various Artists
@@ -119,13 +117,13 @@
       albumArtist = cleanArtistName(albumArtist);
     }
 
-    // Album via pipeline (inkl. ellipsfix mm.)
+    // Album via pipeline (inkl. ellipsfix etc.)
     album =
       typeof cleanAlbumTitle === "function" ? cleanAlbumTitle(album) : album;
 
-    // ---------- TRACKLIST + FEAT/TID (ny logik, minimal & säker) ----------
+    // ---------- TRACKLIST + FEAT/TID (ny logik) ----------
 
-    // Börja läsa spår från första raden som börjar med "1"
+    // Starta vid första rad som börjar med "1"
     const startIdx = text.search(/^\s*1\s/m);
     const trackBlock = startIdx >= 0 ? text.slice(startIdx) : "";
 
@@ -135,9 +133,7 @@
       .filter(Boolean);
 
     // Regexar & småhjälpare
-    // Tillåt både MM:SS och H:MM:SS
-    const RX_TIME_STR = "(?:\\d{1,2}:)?\\d{2}:\\d{2}";
-    const RX_DASH = new RegExp(window.DPT_CONSTANTS?.DASH_CLASS || DASH_CLASS); // används i m1 nedan
+    const RX_TIME_STR = "(?:\\d{1,2}:)?\\d{2}:\\d{2}"; // H:MM:SS eller MM:SS
     const RX_TIME_ONLY = new RegExp("^\\s*(" + RX_TIME_STR + ")\\s*$");
     const RX_FEAT = /^\s*(?:featuring|feat\.?)\s*[-–]\s*(.+)\s*$/i;
 
@@ -158,8 +154,7 @@
 
     for (let i = 0; i < lines.length; i++) {
       const lnRaw = lines[i];
-      const ln = clean(lnRaw); // behåll ditt befintliga clean-steg
-
+      const ln = clean(lnRaw);
       if (!ln) continue;
 
       // (A) "Featuring – X" på egen rad: koppla till senaste spåret
@@ -171,7 +166,6 @@
           if (!t._feats) t._feats = [];
           for (const n of names) if (!t._feats.includes(n)) t._feats.push(n);
 
-          // Bygg om artistfältet: albumArtist feat. X, Y
           t.artist = t._feats.length
             ? `${albumArtist} feat. ${t._feats.join(", ")}`
             : albumArtist;
@@ -187,21 +181,19 @@
       }
 
       // (C1) "nr  Artist — Title  [ev tid]"
-      // DASH_CLASS från ditt system anger tillåtna dash-tecken i "Artist — Title"
       let m = ln.match(
         new RegExp(
           "^\\s*(\\d+)\\s+(.+?)\\s*" +
             (window.DPT_CONSTANTS?.DASH_CLASS || DASH_CLASS) +
             "\\s+(.+?)(?:\\s+(" +
             RX_TIME_STR +
-            "))?$"
+            "))?\\s*$"
         )
       );
 
       if (m) {
         const idx = parseInt(m[1], 10);
-        let artist = cleanArtistName(m[2]);
-        artist = artist.replace(/\bvs\.{2,}\b/gi, "vs."); // normalisera "vs.."
+        let artist = cleanArtistName(m[2]).replace(/\bvs\.{2,}\b/gi, "vs.");
         const rawTitle = m[3];
         const len = m[4] || "";
 
@@ -216,9 +208,8 @@
 
       // (C2) "nr  Title  [ev tid]"  (ingen artist → använd albumArtist)
       m = ln.match(
-        new RegExp("^\\s*(\\d+)\\s+(.+?)(?:\\s+(" + RX_TIME_STR + "))?$")
+        new RegExp("^\\s*(\\d+)\\s+(.+?)(?:\\s+(" + RX_TIME_STR + "))?\\s*$")
       );
-
       if (m) {
         const idx = parseInt(m[1], 10);
         const rawTitle = m[2];
@@ -231,8 +222,10 @@
           albumArtist
         );
 
-        let artistFromAlbum = cleanArtistName(albumArtist);
-        artistFromAlbum = artistFromAlbum.replace(/\bvs\.{2,}\b/gi, "vs.");
+        let artistFromAlbum = cleanArtistName(albumArtist).replace(
+          /\bvs\.{2,}\b/gi,
+          "vs."
+        );
 
         tracks.push({
           index: idx,
@@ -248,15 +241,15 @@
       if (/album cover$/i.test(ln)) continue;
     }
 
-    // ---------- Return (samma fält som 0.35.18, + ev. length i tracks) ----------
+    // ---------- Return ----------
     return {
       albumArtist: cleanArtistName(albumArtist),
       album: album,
       year: sanitizeYear(year),
       genre: clean(genre),
       label: clean(label),
-      labelNumber: clean(labelNumber), // valt cat#
-      labelNumbers: labelNumbers.map(clean), // alla cat#
+      labelNumber: clean(labelNumber), // cat# (alla eller första, enl. ovan)
+      labelNumbers: labelNumbers.map(clean), // samtliga cat#
       tracks,
     };
   }
