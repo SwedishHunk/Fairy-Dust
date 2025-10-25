@@ -4,7 +4,7 @@
   "type": "script",
   "author": "Max",
   "main": "init.js",
-  "version": "0.36.6",
-  "description": "Fix:\r\n– Cat# fixad\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Plocka featuring från låt-credits\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt",
-  "lastUpdated": "2025-10-25 17:53:43"
+  "version": "0.37.0",
+  "description": "NYTT:\r\n– La till stöd för spår över 1 timme\r\n\r\nFOCUS:\r\n– Lägg till stöd för låtar över 1 timme\r\n– Refaktorera\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Plocka featuring från låt-credits",
+  "lastUpdated": "2025-10-25 18:06:01"
 }

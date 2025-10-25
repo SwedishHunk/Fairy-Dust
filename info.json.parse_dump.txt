@@ -4,7 +4,7 @@
   "type": "script",
   "author": "Max",
   "main": "init.js",
-  "version": "0.36.5",
-  "description": "Fix:\r\n– FIX: Cat# extraheras från Label:-raden när den skrivs som LabelName\r\n– CATNO (stöd för en/em-dash och hyphen).\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Plocka featuring från låt-credits\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt",
-  "lastUpdated": "2025-10-25 16:32:01"
+  "version": "0.37.0",
+  "description": "NYTT:\r\n– La till stöd för spår över 1 timme\r\n\r\nFOCUS:\r\n– Refaktorera\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Plocka featuring från låt-credits",
+  "lastUpdated": "2025-10-25 18:05:22"
 }

@@ -135,8 +135,10 @@
       .filter(Boolean);
 
     // Regexar & småhjälpare
+    // Tillåt både MM:SS och H:MM:SS
+    const RX_TIME_STR = "(?:\\d{1,2}:)?\\d{2}:\\d{2}";
     const RX_DASH = new RegExp(window.DPT_CONSTANTS?.DASH_CLASS || DASH_CLASS); // används i m1 nedan
-    const RX_TIME_ONLY = /^\s*(\d{1,2}:\d{2})\s*$/;
+    const RX_TIME_ONLY = new RegExp("^\\s*(" + RX_TIME_STR + ")\\s*$");
     const RX_FEAT = /^\s*(?:featuring|feat\.?)\s*[-–]\s*(.+)\s*$/i;
 
     const cleanFeatName = (s) =>
@@ -190,7 +192,9 @@
         new RegExp(
           "^\\s*(\\d+)\\s+(.+?)\\s*" +
             (window.DPT_CONSTANTS?.DASH_CLASS || DASH_CLASS) +
-            "\\s+(.+?)(?:\\s+(\\d{1,2}:\\d{2}))?$"
+            "\\s+(.+?)(?:\\s+(" +
+            RX_TIME_STR +
+            "))?$"
         )
       );
 
@@ -211,7 +215,10 @@
       }
 
       // (C2) "nr  Title  [ev tid]"  (ingen artist → använd albumArtist)
-      m = ln.match(/^\s*(\d+)\s+(.+?)(?:\s+(\d{1,2}:\d{2}))?$/);
+      m = ln.match(
+        new RegExp("^\\s*(\\d+)\\s+(.+?)(?:\\s+(" + RX_TIME_STR + "))?$")
+      );
+
       if (m) {
         const idx = parseInt(m[1], 10);
         const rawTitle = m[2];
