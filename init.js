@@ -158,22 +158,24 @@
         }
 
         case "label": {
-          // Ex: "YoYo Records (2) – YOYO076"
-          // Ta första posten om flera finns (”Label1 – CAT1, Label2 – CAT2”)
+          // Ta första posten om flera listas (”Label1 – CAT1, Label2 – CAT2”)
           const first = val.split(/[,;]/)[0].trim();
 
-          // Splitta på en-dash (–) eller vanlig hyphen (-)
-          const parts = first.split(/\s*(?:–|-)\s*/);
+          // Försök matcha "LABEL <dash> CATNO" (stöd för en-dash, em-dash, hyphen)
+          const m = first.match(/^\s*(.+?)\s*[–—-]\s*(\S.+)\s*$/);
 
-          const lbl0 = parts[0] || "";
-          let lbl = cleanIndexStar(lbl0);
-          let cn = (parts[1] || "").trim();
-
-          // Minimal fallback: om vi inte fick något efter bindestreck, försök plocka "svansen"
-          if (!cn) {
-            const m = first.match(/(?:–|-)\s*([^\s].*)$/);
-            if (m) cn = m[1].trim();
+          let lblPart, cnPart;
+          if (m) {
+            lblPart = m[1];
+            cnPart = m[2];
+          } else {
+            // Om ingen dash hittas: behandla hela som label och lämna catno orörd
+            lblPart = first;
+            cnPart = "";
           }
+
+          const lbl = cleanIndexStar(lblPart); // tar bort (4), * osv.
+          const cn = cnPart.trim();
 
           if (lbl) label = lbl;
           if (cn) catno = cn;

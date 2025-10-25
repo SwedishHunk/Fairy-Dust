@@ -6,5 +6,5 @@
   "main": "init.js",
   "version": "0.36.4",
   "description": "NYTT:\r\n– Parsern lyfter “Featuring\r\n– …” i creditrader mellan spår och mappas till spåret ovan som AlbumArtist feat.X\r\n\r\nFix:\r\n– Rensar ANV/index (<n>) och trailing * i feat-namn; stöd för flera credit-rader per spår\r\n– GIW-metadata fylls korrekt igen. Parsern läser nu Released/Genre/Style/Label/Catalog# (även radbrytna varianter), rensar index/asterisk i label och plockar ut cat#.\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Plocka featuring från låt-credits\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt",
-  "lastUpdated": "2025-10-25 15:36:37"
+  "lastUpdated": "2025-10-25 15:47:26"
 }
