@@ -6,5 +6,5 @@
   "main": "init.js",
   "version": "0.37.0",
   "description": "NYTT:\r\n– La till stöd för spår över 1 timme\r\n\r\nFOCUS:\r\n– Lägg till stöd för låtar över 1 timme\r\n– Refaktorera\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Plocka featuring från låt-credits",
-  "lastUpdated": "2025-10-25 18:06:01"
+  "lastUpdated": "2025-10-25 22:45:15"
 }
