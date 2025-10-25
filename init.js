@@ -10,10 +10,10 @@
   // ====== Parser för Discogs-klipp ======
   // ====== Parser för Discogs-klipp ======
   function parseDiscogs(raw) {
-    // 1) normalisera radslut
+    // 1) Normalisera radslut (INGEN "klistra tid på föregående rad")
     let text = (raw || "").replace(/\r\n/g, "\n");
 
-    // 2) plocka “huvudet” (Artist — Album) från första raden
+    // 2) Plocka “huvudet” (Artist — Album) från första raden
     const firstLine = clean(text.split("\n")[0] || "");
     let albumArtist = "",
       album = firstLine;
@@ -24,68 +24,143 @@
     } else {
       albumArtist = "";
     }
+
+    // ---------- METADATA (från 0.35.18, oförändrad i sak) ----------
+
+    // Released / Year
+    const relMatch = text.match(/^\s*Released:\s*([^\n]+)$/im);
+    let year = "";
+    if (relMatch) {
+      const y = relMatch[1].match(/(\d{4})/);
+      if (y) year = y[1];
+    }
+
+    // Genre / Style → föredra Style om den ser rimlig ut, annars Genre
+    const styleLine = text.match(/^\s*Style:\s*([^\n]*)$/im); // * tillåter tom style
+    const genreLine = text.match(/^\s*Genre:\s*([^\n]+)$/im);
+
+    const fromCsv = (s) =>
+      (s || "")
+        .split(",")
+        .map((x) => clean(x))
+        .filter(Boolean)
+        .join("; ");
+
+    let genre = "";
+    if (styleLine) {
+      const s = clean(styleLine[1]);
+      const looksLikeTrackHeader =
+        /^Act\s*\d+/i.test(s) || /^(Tracklist|Bonus)\b/i.test(s);
+      if (s && !looksLikeTrackHeader) {
+        genre = fromCsv(s);
+      }
+    }
+    if (!genre && genreLine) {
+      genre = fromCsv(genreLine[1]);
+    }
+
+    // Label + Catalog Numbers (cat#)
+    const labelLine = text.match(/^\s*Label:\s*([^\n]+)$/im);
+    let label = "";
+    let labelNumbers = []; // alla cat#
+    let labelNumber = ""; // vad som visas i GIW
+
+    if (labelLine) {
+      const seenLabels = new Map(); // case-insensitiv dedupe av labelnamn
+      const catnos = new Set(); // unika cat# i insamlingsordning
+
+      labelLine[1].split(",").forEach((rawPart) => {
+        let part = (rawPart || "").trim();
+        if (!part) return;
+
+        // Dela "Label — CatNo" på långt streck (–/—), aldrig på vanlig "-"
+        const mDash = part.match(/^(.*?)\s*[–—]\s*(.+)$/);
+        let left = part,
+          right = "";
+        if (mDash) {
+          left = mDash[1].trim();
+          right = mDash[2].trim();
+        }
+
+        // Rensa parentes-suffix i labeln (t.ex. "(2)", "(US)")
+        left = left.replace(/\s*\([^)]*\)\s*$/, "").trim();
+        if (left) {
+          const key = left.toLowerCase();
+          if (!seenLabels.has(key)) seenLabels.set(key, left);
+        }
+
+        // Cat#: kan vara flera i samma segment, separerade med "/" eller ";"
+        if (right) {
+          right.split(/[\/;]\s*/).forEach((c) => {
+            const rawCn = (c || "").trim();
+            if (!rawCn) return;
+            const cn =
+              typeof normalizeCatNo === "function"
+                ? normalizeCatNo(rawCn)
+                : rawCn.replace(/\s+/g, " ").trim();
+            if (cn) catnos.add(cn);
+          });
+        }
+      });
+
+      label = Array.from(seenLabels.values()).join("; ");
+      labelNumbers = Array.from(catnos);
+
+      // Visa ALLA cat# i GIW-fältet (samma beteende som i 0.35.18)
+      labelNumber = labelNumbers.join("; ");
+      // (Om du hellre vill visa bara första: labelNumber = labelNumbers[0] || "";)
+    }
+
+    // Compilation? → albumartist = Various Artists
+    const formatLine = text.match(/^\s*Format:\s*([^\n]+)$/im);
+    if (formatLine && /Compilation/i.test(formatLine[1])) {
+      albumArtist = "Various Artists";
+    } else {
+      albumArtist = cleanArtistName(albumArtist);
+    }
+
+    // Album via pipeline (inkl. ellipsfix mm.)
     album =
       typeof cleanAlbumTitle === "function" ? cleanAlbumTitle(album) : album;
 
-    // 3) metadata + spårlista
-    const lines = text.split("\n").slice(1);
+    // ---------- TRACKLIST + FEAT/TID (ny logik, minimal & säker) ----------
 
-    // --- regex
-    const RX_TRACK = /^\s*(\d+)\s+(.+?)(?:\s+(\d{1,2}:\d{2}))?\s*$/;
-    const RX_FEAT = /^\s*(?:featuring|feat\.?)\s*[-–]\s*(.+)\s*$/i;
+    // Börja läsa spår från första raden som börjar med "1"
+    const startIdx = text.search(/^\s*1\s/m);
+    const trackBlock = startIdx >= 0 ? text.slice(startIdx) : "";
+
+    const lines = trackBlock
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    // Regexar & småhjälpare
+    const RX_DASH = new RegExp(window.DPT_CONSTANTS?.DASH_CLASS || DASH_CLASS); // används i m1 nedan
     const RX_TIME_ONLY = /^\s*(\d{1,2}:\d{2})\s*$/;
-    const RX_META_LINE =
-      /^\s*(Label|Format|Country|Released|Genre|Style|Catalog(?:ue)?(?:\s*#| number)?)\s*:\s*(.*)$/i;
+    const RX_FEAT = /^\s*(?:featuring|feat\.?)\s*[-–]\s*(.+)\s*$/i;
 
-    // --- småhjälpare
-    const cleanIndexStar = (s) =>
+    const cleanFeatName = (s) =>
       String(s || "")
-        .replace(/\*+$/g, "")
-        .replace(/\s*\(\d+\)\s*$/g, "")
+        .replace(/\*+$/g, "") // trailing asterisk
+        .replace(/\s*\(\d+\)\s*$/g, "") // Discogs-index (4)
+        .replace(/\s+/g, " ")
         .trim();
 
-    const cleanFeatName = (s) => cleanIndexStar(s).replace(/\s+/g, " ");
     const splitFeatNames = (s) =>
       String(s || "")
         .split(/\s*(?:,|&| and )\s*/i)
         .map(cleanFeatName)
         .filter(Boolean);
 
-    // metadata-behållare
-    let year = "";
-    let genre = ""; // kommer bli Style om finns, annars Genre
-    let label = "";
-    let catno = "";
-
-    // stöd för rubrik på en rad och värde på nästa rad
-    let pendingKey = null;
-
     const tracks = [];
+
     for (let i = 0; i < lines.length; i++) {
-      let ln = lines[i].trim();
+      const lnRaw = lines[i];
+      const ln = clean(lnRaw); // behåll ditt befintliga clean-steg
+
       if (!ln) continue;
 
-      // --- (A) Metadata: om vi väntar på ett värde från föregående rubrik
-      if (pendingKey) {
-        handleMeta(pendingKey, ln);
-        pendingKey = null;
-        continue;
-      }
-
-      // --- (B) Metadata: rubrik + ev. värde på samma rad
-      const mm = ln.match(RX_META_LINE);
-      if (mm) {
-        const key = mm[1].toLowerCase();
-        const val = (mm[2] || "").trim();
-        if (val) {
-          handleMeta(key, val);
-        } else {
-          pendingKey = key; // nästa icke-tomma rad är värdet
-        }
-        continue;
-      }
-
-      // --- (C) “Featuring – …” mellan spår → koppla till senaste spåret
+      // (A) "Featuring – X" på egen rad: koppla till senaste spåret
       const mf = ln.match(RX_FEAT);
       if (mf) {
         if (tracks.length) {
@@ -93,6 +168,8 @@
           const names = splitFeatNames(mf[1]);
           if (!t._feats) t._feats = [];
           for (const n of names) if (!t._feats.includes(n)) t._feats.push(n);
+
+          // Bygg om artistfältet: albumArtist feat. X, Y
           t.artist = t._feats.length
             ? `${albumArtist} feat. ${t._feats.join(", ")}`
             : albumArtist;
@@ -100,108 +177,80 @@
         continue;
       }
 
-      // --- (D) En rad som bara är tid → sätt längd på senaste spåret
+      // (B) Tidsrad på egen rad: sätt length på senaste spåret
       const mtOnly = ln.match(RX_TIME_ONLY);
       if (mtOnly) {
         if (tracks.length) tracks[tracks.length - 1].length = mtOnly[1];
         continue;
       }
 
-      // --- (E) Vanlig spår-rad: "<nr>  <titel>  [ev tid]"
-      const mt = ln.match(RX_TRACK);
-      if (mt) {
-        const idx = parseInt(mt[1], 10);
-        const rawTitle = mt[2];
-        const len = mt[3] || "";
+      // (C1) "nr  Artist — Title  [ev tid]"
+      // DASH_CLASS från ditt system anger tillåtna dash-tecken i "Artist — Title"
+      let m = ln.match(
+        new RegExp(
+          "^\\s*(\\d+)\\s+(.+?)\\s*" +
+            (window.DPT_CONSTANTS?.DASH_CLASS || DASH_CLASS) +
+            "\\s+(.+?)(?:\\s+(\\d{1,2}:\\d{2}))?$"
+        )
+      );
+
+      if (m) {
+        const idx = parseInt(m[1], 10);
+        let artist = cleanArtistName(m[2]);
+        artist = artist.replace(/\bvs\.{2,}\b/gi, "vs."); // normalisera "vs.."
+        const rawTitle = m[3];
+        const len = m[4] || "";
 
         const title =
           typeof cleanTrackTitle === "function"
             ? cleanTrackTitle(rawTitle)
             : clean(rawTitle);
 
+        tracks.push({ index: idx, artist, title, length: len });
+        continue;
+      }
+
+      // (C2) "nr  Title  [ev tid]"  (ingen artist → använd albumArtist)
+      m = ln.match(/^\s*(\d+)\s+(.+?)(?:\s+(\d{1,2}:\d{2}))?$/);
+      if (m) {
+        const idx = parseInt(m[1], 10);
+        const rawTitle = m[2];
+        const len = m[3] || "";
+
+        const title = stripLeadingArtistPrefix(
+          typeof cleanTrackTitle === "function"
+            ? cleanTrackTitle(rawTitle)
+            : clean(rawTitle),
+          albumArtist
+        );
+
+        let artistFromAlbum = cleanArtistName(albumArtist);
+        artistFromAlbum = artistFromAlbum.replace(/\bvs\.{2,}\b/gi, "vs.");
+
         tracks.push({
           index: idx,
-          artist: albumArtist, // ev. uppdateras av efterföljande "Featuring – ..."
+          artist: artistFromAlbum,
           title,
           length: len,
         });
         continue;
       }
 
-      // --- (F) Övriga rader (t.ex. “More images”, “album cover”) ignoreras
+      // Övriga rader ignoreras (t.ex. "More images", "album cover")
       if (/^more images$/i.test(ln)) continue;
       if (/album cover$/i.test(ln)) continue;
     }
 
-    // --- meta-hanterare
-    function handleMeta(key, rawVal) {
-      const val = String(rawVal || "").trim();
-
-      switch (key) {
-        case "released": {
-          // ta första 4-siffriga året
-          const m = val.match(/\b(19|20)\d{2}\b/);
-          if (m) year = m[0];
-          break;
-        }
-
-        case "genre": {
-          // spara bara om vi inte redan fått Style
-          if (!genre) genre = val;
-          break;
-        }
-
-        case "style": {
-          // Style har högre prioritet än Genre
-          genre = val;
-          break;
-        }
-
-        case "label": {
-          // Ta första posten om flera listas (”Label1 – CAT1, Label2 – CAT2”)
-          const first = val.split(/[,;]/)[0].trim();
-
-          // Försök matcha "LABEL <dash> CATNO" (stöd för en-dash, em-dash, hyphen)
-          const m = first.match(/^\s*(.+?)\s*[–—-]\s*(\S.+)\s*$/);
-
-          let lblPart, cnPart;
-          if (m) {
-            lblPart = m[1];
-            cnPart = m[2];
-          } else {
-            // Om ingen dash hittas: behandla hela som label och lämna catno orörd
-            lblPart = first;
-            cnPart = "";
-          }
-
-          const lbl = cleanIndexStar(lblPart); // tar bort (4), * osv.
-          const cn = cnPart.trim();
-
-          if (lbl) label = lbl;
-          if (cn) catno = cn;
-          break;
-        }
-
-        // Flera möjliga etiketter för katalognummer (case-insensitive är redan hanterat tidigare)
-        case "catalog#":
-        case "catalogue#":
-        case "catalog number":
-        case "catalogue number":
-          if (!catno) catno = val;
-          break;
-
-        // Format/Country ignoreras för GIW-fälten
-      }
-    }
-
+    // ---------- Return (samma fält som 0.35.18, + ev. length i tracks) ----------
     return {
-      albumArtist,
-      album,
+      albumArtist: cleanArtistName(albumArtist),
+      album: album,
+      year: sanitizeYear(year),
+      genre: clean(genre),
+      label: clean(label),
+      labelNumber: clean(labelNumber), // valt cat#
+      labelNumbers: labelNumbers.map(clean), // alla cat#
       tracks,
-      year,
-      genre,
-      label,
-      catno,
     };
   }
 
