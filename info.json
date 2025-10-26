@@ -4,7 +4,7 @@
   "type": "script",
   "author": "Max",
   "main": "init.js",
-  "version": "0.37.0",
-  "description": "NYTT:\r\n– Fullt stöd för \"Featuring – X\" mellan spårrader → kopplas automatiskt till rätt track och skrivs som albumArtist feat. X\r\n– Stöd för både MM:SS och H:MM:SS i track-längder\r\n– Ny och mer robust ellips-normalisering (inga mellanslag före punkt; stöd för …-tecken)\r\n– Automatisk pipeline-hantering för cleanAlbumTitle()\r\n– Förbättrad text-sanering av feat-artister: tar bort indexnummer (4) och asterisker *\r\n– Helt bevarad metadata-parsning från 0.35-serien (Label, Cat#, Genre, Style, Year m.m.)\r\n– Samlad, uppstädad struktur i parseDiscogs() för enklare vidareutveckling\r\n\r\nFix:\r\n– Låtlängder hamnade tidigare i titelfältet — åtgärdat\r\n– Cat# plockades inte upp korrekt — åtgärdat\r\n– UI-stabilitet: inga fält försvinner längre när “Featuring – …” förekommer\r\n– Små fixar i ordningsföljd av localRequirejs()-laddning\r\n– Förbättrad hantering av whitespace och Unicode-tecken i input\r\n\r\nFOCUS:\r\n– Lägg till stöd för låtar över 1 timme\r\n– Refaktorera\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Plocka featuring från låt-credits",
-  "lastUpdated": "2025-10-25 22:51:03"
+  "version": "0.37.3",
+  "description": "Fix:\r\n– Löser så att år skrivs till tag\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Fixa så att albumartist skrivs till tag\r\n– Fixa skrivning av datum\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Plocka featuring från låt-credits\r\n– Lägg till stöd för låtar över 1 timme",
+  "lastUpdated": "2025-10-26 22:11:32"
 }

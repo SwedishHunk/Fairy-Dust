@@ -133,7 +133,9 @@
       .filter(Boolean);
 
     // Regexar & småhjälpare
-    const RX_TIME_STR = "(?:\\d{1,2}:)?\\d{2}:\\d{2}"; // H:MM:SS eller MM:SS
+    // Byt ut din RX_TIME_STR mot detta
+    const RX_TIME_STR = "(?:\\d{1,2}:\\d{2}|\\d{1,2}:\\d{2}:\\d{2})";
+
     const RX_TIME_ONLY = new RegExp("^\\s*(" + RX_TIME_STR + ")\\s*$");
     const RX_FEAT = /^\s*(?:featuring|feat\.?)\s*[-–]\s*(.+)\s*$/i;
 
@@ -941,15 +943,134 @@
         if (rowApply[i] && applyT[i] && "title" in t) t.title = p.title;
 
         // GIW-fält: ALLTID på alla spår om valt i GIW
-        if (metaApply.album && "album" in t) t.album = parsed.album;
-        if (metaApply.albumartist && "albumartist" in t)
-          t.albumartist = parsed.albumArtist;
-        if (metaApply.year && "year" in t) t.year = parsed.year || "";
-        if (metaApply.genre && "genre" in t) t.genre = parsed.genre || "";
-        if (metaApply.label && "publisher" in t)
-          t.publisher = parsed.label || "";
-        if (metaApply.labelNumber && "custom1" in t)
-          t.custom1 = parsed.labelNumber || "";
+        // GIW-fält: skriv till alla valda spår när boxen är markerad
+        // Album
+        if (metaApply.album) {
+          if ("album" in t) t.album = parsed.album || "";
+        }
+
+        // Album Artist (skriv båda casings om de finns)
+        if (metaApply.albumartist) {
+          const aa = parsed.albumArtist || "";
+          if ("albumartist" in t) t.albumartist = aa;
+          if ("albumArtist" in t) t.albumArtist = aa;
+        }
+
+        // Year / Date
+        if (metaApply.year) {
+          const yrRaw = String(
+            (p && p.year != null ? p.year : parsed.year) || ""
+          ).trim();
+
+          // Tolka fri text → { year: 'YYYY' | '', iso: 'YYYY-MM-DD' | '' }
+          const parseYearDate = (s) => {
+            if (!s) return { year: "", iso: "" };
+
+            // 1) YYYY
+            let m = s.match(/\b(\d{4})\b/);
+            let yyyy = m ? m[1] : "";
+
+            // 2) MonthName DD, YYYY
+            //    ex. Dec 14, 2023  / December 14, 2023
+            m = s.match(/\b([A-Za-z]{3,})\s+(\d{1,2}),\s*(\d{4})\b/);
+            if (m) {
+              const MMM = m[1].toLowerCase();
+              const DD = m[2].padStart(2, "0");
+              const Y = m[3];
+              const MMAP = {
+                jan: "01",
+                feb: "02",
+                mar: "03",
+                apr: "04",
+                may: "05",
+                jun: "06",
+                jul: "07",
+                aug: "08",
+                sep: "09",
+                oct: "10",
+                nov: "11",
+                dec: "12",
+              };
+              const mm = (MMAP[MMM.slice(0, 3)] || "").toString();
+              return { year: Y, iso: mm ? `${Y}-${mm}-${DD}` : Y };
+            }
+
+            // 3) MonthName YYYY  (ex. Dec 2009)
+            m = s.match(/\b([A-Za-z]{3,})\s+(\d{4})\b/);
+            if (m) {
+              const MMM = m[1].toLowerCase();
+              const Y = m[2];
+              const MMAP = {
+                jan: "01",
+                feb: "02",
+                mar: "03",
+                apr: "04",
+                may: "05",
+                jun: "06",
+                jul: "07",
+                aug: "08",
+                sep: "09",
+                oct: "10",
+                nov: "11",
+                dec: "12",
+              };
+              const mm = (MMAP[MMM.slice(0, 3)] || "").toString();
+              if (mm) return { year: Y, iso: `${Y}-${mm}-01` };
+              return { year: Y, iso: `${Y}-01-01` };
+            }
+
+            // 4) Bara YYYY hittades någonstans i strängen
+            if (yyyy) return { year: yyyy, iso: `${yyyy}-01-01` };
+
+            // 5) Inget vettigt hittat
+            return { year: "", iso: "" };
+          };
+
+          const parsedYD = parseYearDate(yrRaw);
+          const Y = parsedYD.year;
+          const ISO = parsedYD.iso;
+
+          // 1) Försök via uitools (hela selection)
+          try {
+            if (Y && window.DPT_MM?.uitools?.setField) {
+              window.DPT_MM.uitools.setField("Year", Y);
+            }
+            if (ISO && window.DPT_MM?.uitools?.setField) {
+              window.DPT_MM.uitools.setField("Date", ISO);
+            }
+          } catch {}
+
+          // 2) Fallback per rad (skriv alla kända alias om de finns)
+          if (Y || ISO) {
+            if ("year" in t && Y) t.year = Y;
+            if ("Year" in t && Y) t.Year = Y;
+
+            if ("date" in t && ISO) t.date = ISO;
+            if ("Date" in t && ISO) t.Date = ISO;
+
+            if ("OriginalYear" in t && Y) t.OriginalYear = Y;
+            if ("OriginalDate" in t && ISO) t.OriginalDate = ISO;
+          }
+        }
+
+        // Genre
+        if (metaApply.genre) {
+          if ("genre" in t) t.genre = parsed.genre || "";
+        }
+
+        // Label/Publisher (sätt båda om fälten finns)
+        if (metaApply.label) {
+          const lab = parsed.label || "";
+          if ("publisher" in t) t.publisher = lab;
+          if ("label" in t) t.label = lab;
+        }
+
+        // Katalognummer (Custom1 & ev. catalogNo om det finns)
+        if (metaApply.labelNumber) {
+          const cn = parsed.labelNumber || "";
+          if ("custom1" in t) t.custom1 = cn;
+          if ("catalogNo" in t) t.catalogNo = cn;
+        }
 
         if (typeof t.commitAsync === "function") {
           try {
