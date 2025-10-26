@@ -4,7 +4,7 @@
   "type": "script",
   "author": "Max",
   "main": "init.js",
-  "version": "0.37.3",
-  "description": "Fix:\r\n– Löser så att år skrivs till tag\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Fixa så att albumartist skrivs till tag\r\n– Fixa skrivning av datum\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Plocka featuring från låt-credits\r\n– Lägg till stöd för låtar över 1 timme",
-  "lastUpdated": "2025-10-26 22:11:32"
+  "version": "0.37.4",
+  "description": "Fix:\r\n– Fixar så att år skrivs\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Fixa så att albumartist skrivs till tag\r\n– Fixa skrivning av datum\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Plocka featuring från låt-credits\r\n– Lägg till stöd för låtar över 1 timme",
+  "lastUpdated": "2025-10-26 22:26:15"
 }

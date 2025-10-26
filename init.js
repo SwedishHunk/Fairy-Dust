@@ -957,21 +957,21 @@
         }
 
         // Year / Date
-        if (metaApply.year) {
-          const yrRaw = String(
-            (p && p.year != null ? p.year : parsed.year) || ""
-          ).trim();
+        // Year / Date (läs i första hand GIW, annars parsed)
+        {
+          const yearInputEl = document.getElementById("dpt-in-year");
+          const giwYearRaw = yearInputEl ? yearInputEl.value : p?.year ?? "";
+          const yrRaw = String(giwYearRaw || parsed.year || "").trim();
 
           // Tolka fri text → { year: 'YYYY' | '', iso: 'YYYY-MM-DD' | '' }
           const parseYearDate = (s) => {
             if (!s) return { year: "", iso: "" };
 
-            // 1) YYYY
+            // YYYY
             let m = s.match(/\b(\d{4})\b/);
             let yyyy = m ? m[1] : "";
 
-            // 2) MonthName DD, YYYY
-            //    ex. Dec 14, 2023  / December 14, 2023
+            // MonthName DD, YYYY  (ex: Dec 14, 2023 / December 14, 2023)
             m = s.match(/\b([A-Za-z]{3,})\s+(\d{1,2}),\s*(\d{4})\b/);
             if (m) {
               const MMM = m[1].toLowerCase();
@@ -991,11 +991,11 @@
                 nov: "11",
                 dec: "12",
               };
-              const mm = (MMAP[MMM.slice(0, 3)] || "").toString();
-              return { year: Y, iso: mm ? `${Y}-${mm}-${DD}` : Y };
+              const mm = MMAP[MMM.slice(0, 3)] || "";
+              return { year: Y, iso: mm ? `${Y}-${mm}-${DD}` : `${Y}-01-01` };
             }
 
-            // 3) MonthName YYYY  (ex. Dec 2009)
+            // MonthName YYYY  (ex: Dec 2009)
             m = s.match(/\b([A-Za-z]{3,})\s+(\d{4})\b/);
             if (m) {
               const MMM = m[1].toLowerCase();
@@ -1014,33 +1014,29 @@
                 nov: "11",
                 dec: "12",
               };
-              const mm = (MMAP[MMM.slice(0, 3)] || "").toString();
-              if (mm) return { year: Y, iso: `${Y}-${mm}-01` };
-              return { year: Y, iso: `${Y}-01-01` };
+              const mm = MMAP[MMM.slice(0, 3)] || "01";
+              return { year: Y, iso: `${Y}-${mm}-01` };
             }
 
-            // 4) Bara YYYY hittades någonstans i strängen
+            // Bara YYYY någonstans
             if (yyyy) return { year: yyyy, iso: `${yyyy}-01-01` };
 
-            // 5) Inget vettigt hittat
             return { year: "", iso: "" };
           };
 
           const parsedYD = parseYearDate(yrRaw);
-          const Y = parsedYD.year;
-          const ISO = parsedYD.iso;
+          const Y = parsedYD.year; // alltid "YYYY" om hittat
+          const ISO = parsedYD.iso; // YYYY-MM-DD när möjligt
 
           // 1) Försök via uitools (hela selection)
           try {
-            if (Y && window.DPT_MM?.uitools?.setField) {
+            if (Y && window.DPT_MM?.uitools?.setField)
               window.DPT_MM.uitools.setField("Year", Y);
-            }
-            if (ISO && window.DPT_MM?.uitools?.setField) {
+            if (ISO && window.DPT_MM?.uitools?.setField)
               window.DPT_MM.uitools.setField("Date", ISO);
-            }
           } catch {}
 
-          // 2) Fallback per rad (skriv alla kända alias om de finns)
+          // 2) Fallback per rad (skriv alias som finns)
           if (Y || ISO) {
             if ("year" in t && Y) t.year = Y;
             if ("Year" in t && Y) t.Year = Y;
@@ -1048,6 +1044,7 @@
             if ("date" in t && ISO) t.date = ISO;
             if ("Date" in t && ISO) t.Date = ISO;
 
+            // Vanliga extraalias
             if ("OriginalYear" in t && Y) t.OriginalYear = Y;
             if ("OriginalDate" in t && ISO) t.OriginalDate = ISO;
           }
@@ -1589,8 +1586,8 @@
         updateGIWRow("album", p.album, mmMeta.album);
       });
       bindTrim("dpt-in-year", (v) => {
-        const s = String(v || "").trim();
-        p.year = /^\d{4}$/.test(s) ? s : "";
+        // Behåll exakt vad användaren skrev – tolkas först i APPLY
+        p.year = (v || "").trim();
         updateGIWRow("year", p.year, mmMeta.year);
       });
 
