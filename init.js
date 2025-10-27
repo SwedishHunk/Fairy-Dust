@@ -922,6 +922,82 @@
 
       const n = Math.min(arr.length, parsed.tracks.length);
 
+      // --- YEAR/DATE: tolka GIW-text (fallback parsed) till {Y, ISO} ---
+      const yearInputEl = document.getElementById("dpt-in-year");
+      const yrRaw = String(yearInputEl?.value || parsed.year || "").trim();
+
+      const parseYearDate = (s) => {
+        if (!s) return { Y: "", ISO: "" };
+
+        // Skriv en gång via UI-verktygen (om “År” är ibockat i GIW)
+        if (metaApply.year) {
+          try {
+            if (APPLY_YEAR && window.DPT_MM?.uitools?.setField)
+              window.DPT_MM.uitools.setField("Year", APPLY_YEAR);
+            if (APPLY_DATE && window.DPT_MM?.uitools?.setField)
+              window.DPT_MM.uitools.setField("Date", APPLY_DATE);
+          } catch {}
+        }
+
+        // YYYY
+        let m = s.match(/\b(\d{4})\b/);
+        let yyyy = m ? m[1] : "";
+
+        // MonthName DD, YYYY  (Dec 14, 2023 / December 14, 2023)
+        m = s.match(/\b([A-Za-z]{3,})\s+(\d{1,2}),\s*(\d{4})\b/);
+        if (m) {
+          const MMM = m[1].toLowerCase();
+          const DD = m[2].padStart(2, "0");
+          const Y = m[3];
+          const MMAP = {
+            jan: "01",
+            feb: "02",
+            mar: "03",
+            apr: "04",
+            may: "05",
+            jun: "06",
+            jul: "07",
+            aug: "08",
+            sep: "09",
+            oct: "10",
+            nov: "11",
+            dec: "12",
+          };
+          const mm = MMAP[MMM.slice(0, 3)] || "01";
+          return { Y, ISO: `${Y}-${mm}-${DD}` };
+        }
+
+        // MonthName YYYY  (Dec 2009)
+        m = s.match(/\b([A-Za-z]{3,})\s+(\d{4})\b/);
+        if (m) {
+          const MMM = m[1].toLowerCase();
+          const Y = m[2];
+          const MMAP = {
+            jan: "01",
+            feb: "02",
+            mar: "03",
+            apr: "04",
+            may: "05",
+            jun: "06",
+            jul: "07",
+            aug: "08",
+            sep: "09",
+            oct: "10",
+            nov: "11",
+            dec: "12",
+          };
+          const mm = MMAP[MMM.slice(0, 3)] || "01";
+          return { Y, ISO: `${Y}-${mm}-01` };
+        }
+
+        // Bara YYYY
+        if (yyyy) return { Y: yyyy, ISO: `${yyyy}-01-01` };
+
+        return { Y: "", ISO: "" };
+      };
+
+      const { Y: APPLY_YEAR, ISO: APPLY_DATE } = parseYearDate(yrRaw);
+
       // Rad- och kolumn-checkboxar
       const rowApply = Array.from(
         document.querySelectorAll(".dpt-row-apply")
@@ -956,97 +1032,17 @@
           if ("albumArtist" in t) t.albumArtist = aa;
         }
 
-        // Year / Date
-        // Year / Date (läs i första hand GIW, annars parsed)
-        {
-          const yearInputEl = document.getElementById("dpt-in-year");
-          const giwYearRaw = yearInputEl ? yearInputEl.value : p?.year ?? "";
-          const yrRaw = String(giwYearRaw || parsed.year || "").trim();
-
-          // Tolka fri text → { year: 'YYYY' | '', iso: 'YYYY-MM-DD' | '' }
-          const parseYearDate = (s) => {
-            if (!s) return { year: "", iso: "" };
-
-            // YYYY
-            let m = s.match(/\b(\d{4})\b/);
-            let yyyy = m ? m[1] : "";
-
-            // MonthName DD, YYYY  (ex: Dec 14, 2023 / December 14, 2023)
-            m = s.match(/\b([A-Za-z]{3,})\s+(\d{1,2}),\s*(\d{4})\b/);
-            if (m) {
-              const MMM = m[1].toLowerCase();
-              const DD = m[2].padStart(2, "0");
-              const Y = m[3];
-              const MMAP = {
-                jan: "01",
-                feb: "02",
-                mar: "03",
-                apr: "04",
-                may: "05",
-                jun: "06",
-                jul: "07",
-                aug: "08",
-                sep: "09",
-                oct: "10",
-                nov: "11",
-                dec: "12",
-              };
-              const mm = MMAP[MMM.slice(0, 3)] || "";
-              return { year: Y, iso: mm ? `${Y}-${mm}-${DD}` : `${Y}-01-01` };
-            }
-
-            // MonthName YYYY  (ex: Dec 2009)
-            m = s.match(/\b([A-Za-z]{3,})\s+(\d{4})\b/);
-            if (m) {
-              const MMM = m[1].toLowerCase();
-              const Y = m[2];
-              const MMAP = {
-                jan: "01",
-                feb: "02",
-                mar: "03",
-                apr: "04",
-                may: "05",
-                jun: "06",
-                jul: "07",
-                aug: "08",
-                sep: "09",
-                oct: "10",
-                nov: "11",
-                dec: "12",
-              };
-              const mm = MMAP[MMM.slice(0, 3)] || "01";
-              return { year: Y, iso: `${Y}-${mm}-01` };
-            }
-
-            // Bara YYYY någonstans
-            if (yyyy) return { year: yyyy, iso: `${yyyy}-01-01` };
-
-            return { year: "", iso: "" };
-          };
-
-          const parsedYD = parseYearDate(yrRaw);
-          const Y = parsedYD.year; // alltid "YYYY" om hittat
-          const ISO = parsedYD.iso; // YYYY-MM-DD när möjligt
-
-          // 1) Försök via uitools (hela selection)
-          try {
-            if (Y && window.DPT_MM?.uitools?.setField)
-              window.DPT_MM.uitools.setField("Year", Y);
-            if (ISO && window.DPT_MM?.uitools?.setField)
-              window.DPT_MM.uitools.setField("Date", ISO);
-          } catch {}
-
-          // 2) Fallback per rad (skriv alias som finns)
-          if (Y || ISO) {
-            if ("year" in t && Y) t.year = Y;
-            if ("Year" in t && Y) t.Year = Y;
-
-            if ("date" in t && ISO) t.date = ISO;
-            if ("Date" in t && ISO) t.Date = ISO;
-
-            // Vanliga extraalias
-            if ("OriginalYear" in t && Y) t.OriginalYear = Y;
-            if ("OriginalDate" in t && ISO) t.OriginalDate = ISO;
+        // Year / Date – skriv alias direkt från förberäknade APPLY_YEAR/APPLY_DATE
+        if (metaApply.year && (APPLY_YEAR || APPLY_DATE)) {
+          if (APPLY_YEAR) {
+            if ("year" in t) t.year = APPLY_YEAR;
+            if ("Year" in t) t.Year = APPLY_YEAR;
+            if ("OriginalYear" in t) t.OriginalYear = APPLY_YEAR;
+          }
+          if (APPLY_DATE) {
+            if ("date" in t) t.date = APPLY_DATE;
+            if ("Date" in t) t.Date = APPLY_DATE;
+            if ("OriginalDate" in t) t.OriginalDate = APPLY_DATE;
           }
         }
 
