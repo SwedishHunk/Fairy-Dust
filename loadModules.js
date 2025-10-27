@@ -6,6 +6,7 @@
   localRequirejs("utils/clean");
   localRequirejs("utils/constants");
   localRequirejs("utils/textTransforms");
+  localRequirejs("utils/dptFields");
 
   // Normalizers
   localRequirejs("utils/cleanArtistName");

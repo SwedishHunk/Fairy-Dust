@@ -5,6 +5,6 @@
   "author": "Max",
   "main": "init.js",
   "version": "0.37.5",
-  "description": "Fix:\r\n– Fix för att skriva år\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Fixa så att albumartist skrivs till tag\r\n– Fixa skrivning av datum\r\n\r\nBETA WATCH:\r\n– Se till att det inte ligger mellanslag före punkt\r\n– Plocka featuring från låt-credits\r\n– Lägg till stöd för låtar över 1 timme",
-  "lastUpdated": "2025-10-27 11:22:32"
+  "description": "Fix:\r\n– Year/Date skrivs nu korrekt till taggar.\r\n– Fallback till YYYY-01-01 vid endast år.\r\n– Kod uppstädad och förberedd för SOC/moduluppdelning.\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Fixa så att albumartist skrivs till tag\r\n– Fixa skrivning av datum\r\n\r\nBETA WATCH:\r\n– Plocka featuring från låt-credits\r\n– Lägg till stöd för låtar över 1 timme",
+  "lastUpdated": "2025-10-27 17:57:48"
 }

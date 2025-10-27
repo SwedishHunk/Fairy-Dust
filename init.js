@@ -922,87 +922,25 @@
 
       const n = Math.min(arr.length, parsed.tracks.length);
 
-      // Engångsskriv YEAR/DATE via MM UI (om “År” är ibockad)
-      const { Y: APPLY_YEAR2, ISO: APPLY_DATE2 } =
-        window.DPT_FIELDS.writeYearDateToMM(metaApply, parsed);
-
-      // --- YEAR/DATE: tolka GIW-text (fallback parsed) till {Y, ISO} ---
+      // --- YEAR/DATE: tolka GIW-text (fallback: parsed.year) med DPT_FIELDS ---
+      const { parseYearDate } = window.DPT_FIELDS || {};
       const yearInputEl = document.getElementById("dpt-in-year");
       const yrRaw = String(yearInputEl?.value || parsed.year || "").trim();
+      let APPLY_YEAR = "",
+        APPLY_DATE = "";
 
-      const parseYearDate = (s) => {
-        if (!s) return { Y: "", ISO: "" };
+      if (typeof parseYearDate === "function") {
+        const { year, iso } = parseYearDate(yrRaw); // -> { year:'YYYY'|'', iso:'YYYY-MM-DD'|'' }
+        APPLY_YEAR = year || "";
+        APPLY_DATE = iso || "";
+      } else {
+        // Minimal fallback om modulen inte är laddad
+        const m = yrRaw.match(/\b(\d{4})\b/);
+        APPLY_YEAR = m ? m[1] : "";
+        APPLY_DATE = APPLY_YEAR ? `${APPLY_YEAR}-01-01` : "";
+      }
 
-        // Skriv en gång via UI-verktygen (om “År” är ibockat i GIW)
-        if (metaApply.year) {
-          try {
-            if (APPLY_YEAR && window.DPT_MM?.uitools?.setField)
-              window.DPT_MM.uitools.setField("Year", APPLY_YEAR);
-            if (APPLY_DATE && window.DPT_MM?.uitools?.setField)
-              window.DPT_MM.uitools.setField("Date", APPLY_DATE);
-          } catch {}
-        }
-
-        // YYYY
-        let m = s.match(/\b(\d{4})\b/);
-        let yyyy = m ? m[1] : "";
-
-        // MonthName DD, YYYY  (Dec 14, 2023 / December 14, 2023)
-        m = s.match(/\b([A-Za-z]{3,})\s+(\d{1,2}),\s*(\d{4})\b/);
-        if (m) {
-          const MMM = m[1].toLowerCase();
-          const DD = m[2].padStart(2, "0");
-          const Y = m[3];
-          const MMAP = {
-            jan: "01",
-            feb: "02",
-            mar: "03",
-            apr: "04",
-            may: "05",
-            jun: "06",
-            jul: "07",
-            aug: "08",
-            sep: "09",
-            oct: "10",
-            nov: "11",
-            dec: "12",
-          };
-          const mm = MMAP[MMM.slice(0, 3)] || "01";
-          return { Y, ISO: `${Y}-${mm}-${DD}` };
-        }
-
-        // MonthName YYYY  (Dec 2009)
-        m = s.match(/\b([A-Za-z]{3,})\s+(\d{4})\b/);
-        if (m) {
-          const MMM = m[1].toLowerCase();
-          const Y = m[2];
-          const MMAP = {
-            jan: "01",
-            feb: "02",
-            mar: "03",
-            apr: "04",
-            may: "05",
-            jun: "06",
-            jul: "07",
-            aug: "08",
-            sep: "09",
-            oct: "10",
-            nov: "11",
-            dec: "12",
-          };
-          const mm = MMAP[MMM.slice(0, 3)] || "01";
-          return { Y, ISO: `${Y}-${mm}-01` };
-        }
-
-        // Bara YYYY
-        if (yyyy) return { Y: yyyy, ISO: `${yyyy}-01-01` };
-
-        return { Y: "", ISO: "" };
-      };
-
-      const { Y: APPLY_YEAR, ISO: APPLY_DATE } = parseYearDate(yrRaw);
-
-      // Rad- och kolumn-checkboxar
+      // --- Rad- och kolumn-checkboxar (oförändrat) ---
       const rowApply = Array.from(
         document.querySelectorAll(".dpt-row-apply")
       ).map((b) => !!b.checked);
@@ -1013,40 +951,72 @@
         document.querySelectorAll(".dpt-apply-title")
       ).map((b) => !!b.checked);
 
+      // --- Skriv spår + GIW-fält ---
       for (let i = 0; i < n; i++) {
         const t = arr[i];
         const p = parsed.tracks[i];
         if (!t) continue;
 
-        // Artist/Titel: endast om raden är markerad OCH respektive kolumn är markerad
+        // Artist/Titel per rad + respektive kolumn-checkbox
         if (rowApply[i] && applyA[i] && "artist" in t) t.artist = p.artist;
         if (rowApply[i] && applyT[i] && "title" in t) t.title = p.title;
 
-        // GIW-fält: ALLTID på alla spår om valt i GIW
-        // Artist/Titel (behålls som tidigare)
-        if (rowApply[i] && applyA[i] && "artist" in t) t.artist = p.artist;
-        if (rowApply[i] && applyT[i] && "title" in t) t.title = p.title;
+        // Album
+        if (metaApply.album) {
+          if ("album" in t) t.album = parsed.album || "";
+        }
 
-        // GIW-fält via helpers
-        const F = window.DPT_FIELDS;
-        F.applyMetaField(metaApply, "album", parsed.album, t, ["album"]);
-        F.applyMetaField(metaApply, "albumartist", parsed.albumArtist, t, [
-          "albumartist",
-          "albumArtist",
-        ]);
-        F.applyMetaField(metaApply, "genre", parsed.genre, t, ["genre"]);
-        F.applyMetaField(metaApply, "label", parsed.label, t, [
-          "publisher",
-          "label",
-        ]);
-        F.applyMetaField(metaApply, "labelNumber", parsed.labelNumber, t, [
-          "custom1",
-          "catalogNo",
-        ]);
+        // Albumartist (skriv båda casings om de finns)
+        if (metaApply.albumartist) {
+          const aa = parsed.albumArtist || "";
+          if ("albumartist" in t) t.albumartist = aa;
+          if ("albumArtist" in t) t.albumArtist = aa;
+        }
 
-        // Year/Date-alias (om “År” är ibockad)
-        if (F.metaWants(metaApply, "year")) {
-          F.writeYearDateAliasesToTrack(t, APPLY_YEAR2, APPLY_DATE2);
+        // Genre
+        if (metaApply.genre) {
+          if ("genre" in t) t.genre = parsed.genre || "";
+        }
+
+        // Label/Publisher
+        if (metaApply.label) {
+          const lab = parsed.label || "";
+          if ("publisher" in t) t.publisher = lab;
+          if ("label" in t) t.label = lab;
+        }
+
+        // Katalognummer
+        if (metaApply.labelNumber) {
+          const cn = parsed.labelNumber || "";
+          if ("custom1" in t) t.custom1 = cn;
+          if ("catalogNo" in t) t.catalogNo = cn;
+        }
+      }
+
+      // --- YEAR/DATE: skriv mot MM (hela selection via uitools, sedan per rad som fallback) ---
+      try {
+        if (APPLY_YEAR && window.DPT_MM?.uitools?.setField) {
+          window.DPT_MM.uitools.setField("Year", APPLY_YEAR);
+        }
+        if (APPLY_DATE && window.DPT_MM?.uitools?.setField) {
+          window.DPT_MM.uitools.setField("Date", APPLY_DATE);
+        }
+      } catch {}
+
+      for (let i = 0; i < n; i++) {
+        const t = arr[i];
+        if (!t) continue;
+
+        // Per-rad fallback om uitools inte skrev
+        if (APPLY_YEAR) {
+          if ("year" in t) t.year = APPLY_YEAR;
+          if ("Year" in t) t.Year = APPLY_YEAR;
+          if ("OriginalYear" in t) t.OriginalYear = APPLY_YEAR;
+        }
+        if (APPLY_DATE) {
+          if ("date" in t) t.date = APPLY_DATE;
+          if ("Date" in t) t.Date = APPLY_DATE;
+          if ("OriginalDate" in t) t.OriginalDate = APPLY_DATE;
         }
 
         if (typeof t.commitAsync === "function") {
