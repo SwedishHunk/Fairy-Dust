@@ -30,6 +30,7 @@
   localRequirejs("utils/stripLeadingArtistPrefix");
   localRequirejs("utils/wrapGenericRemix");
   localRequirejs("utils/expandRemixParen");
+  localRequirejs("utils/fieldHelpers");
 
   // Fältregler
   localRequirejs("utils/fieldRules");

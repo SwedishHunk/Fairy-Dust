@@ -922,6 +922,10 @@
 
       const n = Math.min(arr.length, parsed.tracks.length);
 
+      // Engångsskriv YEAR/DATE via MM UI (om “År” är ibockad)
+      const { Y: APPLY_YEAR2, ISO: APPLY_DATE2 } =
+        window.DPT_FIELDS.writeYearDateToMM(metaApply, parsed);
+
       // --- YEAR/DATE: tolka GIW-text (fallback parsed) till {Y, ISO} ---
       const yearInputEl = document.getElementById("dpt-in-year");
       const yrRaw = String(yearInputEl?.value || parsed.year || "").trim();
@@ -1019,50 +1023,30 @@
         if (rowApply[i] && applyT[i] && "title" in t) t.title = p.title;
 
         // GIW-fält: ALLTID på alla spår om valt i GIW
-        // GIW-fält: skriv till alla valda spår när boxen är markerad
-        // Album
-        if (metaApply.album) {
-          if ("album" in t) t.album = parsed.album || "";
-        }
+        // Artist/Titel (behålls som tidigare)
+        if (rowApply[i] && applyA[i] && "artist" in t) t.artist = p.artist;
+        if (rowApply[i] && applyT[i] && "title" in t) t.title = p.title;
 
-        // Album Artist (skriv båda casings om de finns)
-        if (metaApply.albumartist) {
-          const aa = parsed.albumArtist || "";
-          if ("albumartist" in t) t.albumartist = aa;
-          if ("albumArtist" in t) t.albumArtist = aa;
-        }
+        // GIW-fält via helpers
+        const F = window.DPT_FIELDS;
+        F.applyMetaField(metaApply, "album", parsed.album, t, ["album"]);
+        F.applyMetaField(metaApply, "albumartist", parsed.albumArtist, t, [
+          "albumartist",
+          "albumArtist",
+        ]);
+        F.applyMetaField(metaApply, "genre", parsed.genre, t, ["genre"]);
+        F.applyMetaField(metaApply, "label", parsed.label, t, [
+          "publisher",
+          "label",
+        ]);
+        F.applyMetaField(metaApply, "labelNumber", parsed.labelNumber, t, [
+          "custom1",
+          "catalogNo",
+        ]);
 
-        // Year / Date – skriv alias direkt från förberäknade APPLY_YEAR/APPLY_DATE
-        if (metaApply.year && (APPLY_YEAR || APPLY_DATE)) {
-          if (APPLY_YEAR) {
-            if ("year" in t) t.year = APPLY_YEAR;
-            if ("Year" in t) t.Year = APPLY_YEAR;
-            if ("OriginalYear" in t) t.OriginalYear = APPLY_YEAR;
-          }
-          if (APPLY_DATE) {
-            if ("date" in t) t.date = APPLY_DATE;
-            if ("Date" in t) t.Date = APPLY_DATE;
-            if ("OriginalDate" in t) t.OriginalDate = APPLY_DATE;
-          }
-        }
-
-        // Genre
-        if (metaApply.genre) {
-          if ("genre" in t) t.genre = parsed.genre || "";
-        }
-
-        // Label/Publisher (sätt båda om fälten finns)
-        if (metaApply.label) {
-          const lab = parsed.label || "";
-          if ("publisher" in t) t.publisher = lab;
-          if ("label" in t) t.label = lab;
-        }
-
-        // Katalognummer (Custom1 & ev. catalogNo om det finns)
-        if (metaApply.labelNumber) {
-          const cn = parsed.labelNumber || "";
-          if ("custom1" in t) t.custom1 = cn;
-          if ("catalogNo" in t) t.catalogNo = cn;
+        // Year/Date-alias (om “År” är ibockad)
+        if (F.metaWants(metaApply, "year")) {
+          F.writeYearDateAliasesToTrack(t, APPLY_YEAR2, APPLY_DATE2);
         }
 
         if (typeof t.commitAsync === "function") {
