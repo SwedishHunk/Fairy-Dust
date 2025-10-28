@@ -5,6 +5,6 @@
   "author": "Max",
   "main": "init.js",
   "version": "0.38.0",
-  "description": "NYTT:\r\n– Delar upp modules\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Fixa så att albumartist skrivs till tag\r\n– Fixa skrivning av datum\r\n\r\nBETA WATCH:\r\n– Plocka featuring från låt-credits\r\n– Lägg till stöd för låtar över 1 timme",
-  "lastUpdated": "2025-10-28 16:22:48"
+  "description": "Fix:\r\n– Delar upp modules\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Fixa så att albumartist skrivs till tag\r\n– Fixa skrivning av datum\r\n\r\nBETA WATCH:\r\n– Plocka featuring från låt-credits\r\n– Lägg till stöd för låtar över 1 timme",
+  "lastUpdated": "2025-10-28 16:34:45"
 }
