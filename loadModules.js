@@ -1,43 +1,17 @@
 (() => {
-  ("use strict");
+  "use strict";
 
-  // Ladda alla utils i rätt ordning
-  localRequirejs("utils/mm");
-  localRequirejs("utils/clean");
-  localRequirejs("utils/constants");
-  localRequirejs("utils/textTransforms");
-  localRequirejs("utils/dptFields");
+  function loadAllModules() {
+    localRequirejs("utils/packs/00-core.pack");
+    localRequirejs("utils/packs/10-helpers.pack");
+    localRequirejs("utils/packs/20-normalizers.pack");
+    localRequirejs("utils/packs/30-fields.pack");
+    localRequirejs("utils/packs/90-tests.pack");
+  }
 
-  // Normalizers
-  localRequirejs("utils/cleanArtistName");
-  localRequirejs("utils/normalizeCatNo");
-  localRequirejs("utils/normalizeInlinePt");
-  localRequirejs("utils/normalizeFeat");
-  localRequirejs("utils/normalizePartInAlbum");
-  localRequirejs("utils/normalizePartInTitle");
-  localRequirejs("utils/normalizeRemix");
-  localRequirejs("utils/normalizeSideInAlbum");
-  localRequirejs("utils/normalizeVol");
-  localRequirejs("utils/normalizeVs");
-  localRequirejs("utils/normalizeWith");
-  localRequirejs("utils/normalizeTitleOrAlbum");
-  localRequirejs("utils/smartCapitalize");
-  localRequirejs("utils/stripArtistSuffix");
+  // Kör direkt vid laddning
+  loadAllModules();
 
-  // Småhjälpare
-  localRequirejs("utils/dashToEmpty");
-  localRequirejs("utils/escapeRegExp");
-  localRequirejs("utils/sanitizeYear");
-  localRequirejs("utils/stripLeadingArtistPrefix");
-  localRequirejs("utils/wrapGenericRemix");
-  localRequirejs("utils/expandRemixParen");
-  localRequirejs("utils/fieldHelpers");
-
-  // Fältregler
-  localRequirejs("utils/fieldRules");
-
-  // Test
-  // --- TESTS ---
-  localRequirejs("utils/tests/_runner"); // måste först
-  localRequirejs("utils/tests/testAggregator"); // sedan laddas unit-testerna
+  // Gör den åtkomlig globalt om vi vill kalla den igen senare
+  window.loadAllModules = loadAllModules;
 })();

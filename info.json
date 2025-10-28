@@ -4,7 +4,7 @@
   "type": "script",
   "author": "Max",
   "main": "init.js",
-  "version": "0.37.5",
-  "description": "Fix:\r\n– Year/Date skrivs nu korrekt till taggar.\r\n– Fallback till YYYY-01-01 vid endast år.\r\n– Kod uppstädad och förberedd för SOC/moduluppdelning.\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Fixa så att albumartist skrivs till tag\r\n– Fixa skrivning av datum\r\n\r\nBETA WATCH:\r\n– Plocka featuring från låt-credits\r\n– Lägg till stöd för låtar över 1 timme",
-  "lastUpdated": "2025-10-27 17:58:44"
+  "version": "0.38.0",
+  "description": "NYTT:\r\n– Modularkitektur införd.\r\n– All kod laddas nu via loadModules.js, som automatiskt initierar alla paket (00–90).\r\n– Grunden för full SOC och pipeline-baserad fälthantering är etablerad.\r\n– Förberett för refaktorisering av metadataflödet (album, artist, year, genre, label m.fl.) till gemensam FieldHandler-struktur.\r\n\r\nFOCUS:\r\n– Refaktorera\r\n– Fixa så att albumartist skrivs till tag\r\n– Fixa skrivning av datum\r\n\r\nBETA WATCH:\r\n– Plocka featuring från låt-credits\r\n– Lägg till stöd för låtar över 1 timme",
+  "lastUpdated": "2025-10-28 13:57:02"
 }
